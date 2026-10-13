@@ -18,9 +18,10 @@ const STEPS = [
 function LoadingProgress() {
   const [progress, setProgress] = useState(0);
   const [stepIdx, setStepIdx] = useState(0);
-  const startRef = useRef(Date.now());
+  const startRef = useRef<number>(0);
 
   useEffect(() => {
+    startRef.current = Date.now();
     const DURATION = 15000;
     const tick = () => {
       const elapsed = Date.now() - startRef.current;
