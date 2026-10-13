@@ -1,11 +1,61 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import NewsCard from '@/components/NewsCard';
 import VotePanel from '@/components/VotePanel';
 import WorldMeter from '@/components/WorldMeter';
 import { getFaction, getUserId } from '@/lib/storage';
 import type { GameState, DayNews, Faction, Choice } from '@/lib/types';
+
+const STEPS = [
+  '역사 기록 열람 중...',
+  'AI 역사가 분석 중...',
+  '두 세계선 뉴스 작성 중...',
+  '오늘의 결정 구성 중...',
+  '세계 수치 계산 중...',
+];
+
+function LoadingProgress() {
+  const [progress, setProgress] = useState(0);
+  const [stepIdx, setStepIdx] = useState(0);
+  const startRef = useRef(Date.now());
+
+  useEffect(() => {
+    const DURATION = 15000;
+    const tick = () => {
+      const elapsed = Date.now() - startRef.current;
+      const pct = Math.min(elapsed / DURATION, 0.97);
+      setProgress(pct);
+      setStepIdx(Math.min(Math.floor(pct * STEPS.length), STEPS.length - 1));
+      if (pct < 0.97) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, []);
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-8" style={{ background: 'var(--bg)' }}>
+      <div className="text-center">
+        <div className="text-xs font-semibold tracking-widest mb-2" style={{ color: 'var(--ink-dim)' }}>DIVERGE</div>
+        <div className="text-base font-medium" style={{ color: 'var(--ink)' }}>{STEPS[stepIdx]}</div>
+      </div>
+      <div className="w-full max-w-xs">
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--line)' }}>
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${Math.round(progress * 100)}%`,
+              background: 'var(--ink)',
+              transition: 'width 0.1s linear',
+            }}
+          />
+        </div>
+        <div className="text-right mt-1 text-xs" style={{ color: 'var(--ink-dim)' }}>
+          {Math.round(progress * 100)}%
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function PlayPage() {
   const router = useRouter();
@@ -50,13 +100,7 @@ export default function PlayPage() {
   // suppress unused variable warning
   void newsLoading;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3" style={{ background: 'var(--bg)' }}>
-        <div className="text-sm" style={{ color: 'var(--ink-dim)' }}>뉴스를 가져오는 중... (최초 생성 시 15초 소요)</div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingProgress />;
 
   if (!game || !news || !faction) return null;
 
